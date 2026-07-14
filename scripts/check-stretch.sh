@@ -14,8 +14,13 @@ BP_DIR="${BACKPROMPT_DIR:-$HOME/.backprompt}"
 PLUGIN_ROOT="$(cd "$(dirname "$0")/.." && pwd)" || exit 0
 CARDS_DIR="$PLUGIN_ROOT/cards"
 
-# Hard kill switch: `touch ~/.backprompt/off` pauses everything.
-[ -e "$BP_DIR/off" ] && exit 0
+# "now" = on-demand (/backprompt:now): skip all timing checks, always show
+# a card, print plain text instead of hook JSON. Also works while paused —
+# an explicit request outranks the kill switch.
+MODE="${1:-hook}"
+
+# Hard kill switch: `touch ~/.backprompt/off` pauses everything ambient.
+[ "$MODE" != "now" ] && [ -e "$BP_DIR/off" ] && exit 0
 
 mkdir -p "$BP_DIR" 2>/dev/null || exit 0
 
@@ -27,6 +32,8 @@ COLOR=1                # set COLOR=0 if your terminal shows garbage codes
 
 [ -f "$BP_DIR/config" ] && . "$BP_DIR/config" 2>/dev/null
 [ -n "${NO_COLOR:-}" ] && COLOR=0
+# On-demand output may be piped into a transcript — only color a real tty.
+[ "$MODE" = "now" ] && [ ! -t 1 ] && COLOR=0
 
 if [ "$COLOR" = "1" ]; then
   E=$(printf '\033')
@@ -141,7 +148,7 @@ fi
 LAST_PING=$NOW
 
 # First run ever: introduce yourself once, then stay quiet until due.
-if [ "$INTRO_SHOWN" != "1" ]; then
+if [ "$INTRO_SHOWN" != "1" ] && [ "$MODE" != "now" ]; then
   INTRO_SHOWN=1
   save_state
   MSG=$(printf '%s\n' \
@@ -154,9 +161,11 @@ if [ "$INTRO_SHOWN" != "1" ]; then
   exit 0
 fi
 
-# ---- is a stretch due? ----
-if [ $((NOW - DESK_START)) -lt $((MIN_DESK_MINUTES * 60)) ]; then save_state; exit 0; fi
-if [ "$LAST_CARD" -gt 0 ] && [ $((NOW - LAST_CARD)) -lt $((INTERVAL_MINUTES * 60)) ]; then save_state; exit 0; fi
+# ---- is a stretch due? (on-demand skips the wait) ----
+if [ "$MODE" != "now" ]; then
+  if [ $((NOW - DESK_START)) -lt $((MIN_DESK_MINUTES * 60)) ]; then save_state; exit 0; fi
+  if [ "$LAST_CARD" -gt 0 ] && [ $((NOW - LAST_CARD)) -lt $((INTERVAL_MINUTES * 60)) ]; then save_state; exit 0; fi
+fi
 
 # Two pools, strict alternation: a core (spine/posture) card, then one
 # extra (rest of the body), then core again. The plugin is named after
@@ -190,8 +199,14 @@ else
   NEXT_STR="~${INTERVAL_MINUTES}m"
 fi
 
-MSG=$(render_card "$CARD_FILE" "free stretch break" \
-  "yes. · next: after $NEXT_STR desk time · pause: touch ~/.backprompt/off")
-emit "$MSG"
+if [ "$MODE" = "now" ]; then
+  MSG=$(render_card "$CARD_FILE" "on-demand stretch" \
+    "yes. · the ambient timer resets from here")
+  printf '%s\n' "$MSG"
+else
+  MSG=$(render_card "$CARD_FILE" "free stretch break" \
+    "yes. · next: after $NEXT_STR desk time · pause: touch ~/.backprompt/off")
+  emit "$MSG"
+fi
 
 exit 0
