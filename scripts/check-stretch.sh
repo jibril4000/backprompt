@@ -22,10 +22,7 @@ mkdir -p "$BP_DIR" 2>/dev/null || exit 0
 # ---- defaults (override with KEY=VALUE lines in ~/.backprompt/config) ----
 MIN_DESK_MINUTES=50    # continuous desk time before the first card
 INTERVAL_MINUTES=120   # desk time between cards
-MAX_PER_DAY=4
 GAP_RESET_MINUTES=25   # an activity gap this long counts as a real break
-ACTIVE_START=8         # no cards before 08:00 ...
-ACTIVE_END=21          # ... or from 21:00 on
 COLOR=1                # set COLOR=0 if your terminal shows garbage codes
 
 [ -f "$BP_DIR/config" ] && . "$BP_DIR/config" 2>/dev/null
@@ -43,15 +40,11 @@ else
 fi
 
 NOW=$(date +%s)
-TODAY=$(date +%Y-%m-%d)
-HOUR=$((10#$(date +%H)))
 
 # ---- state ----
 LAST_PING=0
 DESK_START=$NOW
 LAST_CARD=0
-SHOWN_TODAY=0
-DAY="$TODAY"
 CORE_INDEX=0
 EXTRA_INDEX=0
 POOL="core"
@@ -76,8 +69,6 @@ save_state() {
     echo "LAST_PING=$LAST_PING"
     echo "DESK_START=$DESK_START"
     echo "LAST_CARD=$LAST_CARD"
-    echo "SHOWN_TODAY=$SHOWN_TODAY"
-    echo "DAY=$DAY"
     echo "CORE_INDEX=$CORE_INDEX"
     echo "EXTRA_INDEX=$EXTRA_INDEX"
     echo "POOL=$POOL"
@@ -149,19 +140,14 @@ if [ "$LAST_PING" -gt 0 ] && [ $((NOW - LAST_PING)) -ge $((GAP_RESET_MINUTES * 6
 fi
 LAST_PING=$NOW
 
-if [ "$DAY" != "$TODAY" ]; then
-  DAY="$TODAY"
-  SHOWN_TODAY=0
-fi
-
 # First run ever: introduce yourself once, then stay quiet until due.
 if [ "$INTRO_SHOWN" != "1" ]; then
   INTRO_SHOWN=1
   save_state
   MSG=$(printf '%s\n' \
-    'hi! one 30-second seated stretch,' \
-    "a few times a day (max ${MAX_PER_DAY}) — timed" \
-    "for when Claude is working and" \
+    'hi! one 30-second seated stretch' \
+    'every couple hours of desk time —' \
+    'shown while Claude is working and' \
     "you're waiting anyway." \
     | render_card - "props your back, runs in the backdrop" "pause anytime: touch ~/.backprompt/off")
   emit "$MSG"
@@ -169,8 +155,6 @@ if [ "$INTRO_SHOWN" != "1" ]; then
 fi
 
 # ---- is a stretch due? ----
-if [ "$HOUR" -lt "$ACTIVE_START" ] || [ "$HOUR" -ge "$ACTIVE_END" ]; then save_state; exit 0; fi
-if [ "$SHOWN_TODAY" -ge "$MAX_PER_DAY" ]; then save_state; exit 0; fi
 if [ $((NOW - DESK_START)) -lt $((MIN_DESK_MINUTES * 60)) ]; then save_state; exit 0; fi
 if [ "$LAST_CARD" -gt 0 ] && [ $((NOW - LAST_CARD)) -lt $((INTERVAL_MINUTES * 60)) ]; then save_state; exit 0; fi
 
@@ -198,7 +182,6 @@ fi
 if [ -z "$CARD_FILE" ]; then save_state; exit 0; fi
 
 LAST_CARD=$NOW
-SHOWN_TODAY=$((SHOWN_TODAY + 1))
 save_state
 
 if [ "$INTERVAL_MINUTES" -ge 60 ]; then

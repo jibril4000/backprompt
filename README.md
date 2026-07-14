@@ -46,9 +46,11 @@ Rendered in color: teal frame, gold banner and title. Set `COLOR=0` in
 |---|---|
 | First card after | 50 min of continuous desk time |
 | Between cards | 2 h of desk time |
-| Daily cap | 4 cards |
-| Active hours | 08:00–21:00 |
 | Break detection | 25 min activity gap resets the sitting clock |
+
+No daily cap and no "active hours" — if you're at the desk, you've earned
+the stretch, whatever the clock says. The desk-time interval is the only
+rate limit, and it's the honest one.
 
 ## Install
 
@@ -70,10 +72,7 @@ Optional — create `~/.backprompt/config` with any of:
 ```bash
 MIN_DESK_MINUTES=50
 INTERVAL_MINUTES=120
-MAX_PER_DAY=4
 GAP_RESET_MINUTES=25
-ACTIVE_START=8
-ACTIVE_END=21
 COLOR=1
 ```
 

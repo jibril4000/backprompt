@@ -1,6 +1,6 @@
 {
   "name": "backprompt",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Props your back by running in the backdrop of your prompts. One 30-second seated stretch, a few times a day, timed for when Claude is working and you're waiting anyway. Zero tokens, zero commands, zero guilt.",
   "author": {
     "name": "Jibril"
