@@ -1,0 +1,13 @@
+{
+  "name": "backprompt-market",
+  "owner": {
+    "name": "Jibril"
+  },
+  "plugins": [
+    {
+      "name": "backprompt",
+      "source": "./",
+      "description": "Props your back by running in the backdrop of your prompts."
+    }
+  ]
+}
